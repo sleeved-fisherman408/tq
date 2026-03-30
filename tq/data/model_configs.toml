@@ -1,0 +1,48 @@
+[models."Qwen/Qwen3-8B-Instruct"]
+params = "8B"
+use_cases = ["coding", "chat", "general"]
+gguf_q4km_size_mb = 4800
+num_layers = 32
+num_kv_heads = 8
+head_dim = 128
+min_vram_mb = 5500
+recommended_tq = "turbo4"
+quality_tier = "high"
+aliases = ["qwen3-8b", "qwen3-8b-instruct"]
+
+[models."Qwen/Qwen2.5-Coder-7B-Instruct"]
+params = "7B"
+use_cases = ["coding"]
+gguf_q4km_size_mb = 4200
+num_layers = 28
+num_kv_heads = 4
+head_dim = 128
+min_vram_mb = 4900
+recommended_tq = "turbo4"
+quality_tier = "high"
+aliases = ["coder-7b", "qwen2.5-coder-7b"]
+
+[models."meta-llama/Llama-3.3-8B-Instruct"]
+params = "8B"
+use_cases = ["chat", "general", "reasoning"]
+gguf_q4km_size_mb = 4900
+num_layers = 32
+num_kv_heads = 8
+head_dim = 128
+min_vram_mb = 5600
+recommended_tq = "turbo4"
+quality_tier = "high"
+aliases = ["llama3.3-8b", "llama3.3-8b-instruct"]
+
+[models."Qwen/Qwen3.5-4B-Instruct"]
+params = "4B"
+use_cases = ["coding", "chat"]
+gguf_q4km_size_mb = 2500
+num_layers = 24
+num_kv_heads = 4
+head_dim = 128
+min_vram_mb = 3200
+recommended_tq = "turbo4"
+quality_tier = "medium"
+notes = "Best option for 6GB VRAM cards"
+aliases = ["qwen3.5-4b", "qwen3.5-4b-instruct"]

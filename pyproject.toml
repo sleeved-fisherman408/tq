@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tq-serve"
+version = "0.1.0"
+description = "Run local LLMs with maximum context on minimum hardware via TurboQuant KV cache compression"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "rohansx" }]
+keywords = ["llm", "turboquant", "kv-cache", "compression", "local-ai", "openai-compatible"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "torch>=2.0",
+    "transformers>=4.40",
+    "turboquant>=0.1",
+    "fastapi>=0.100",
+    "uvicorn>=0.20",
+    "click>=8.0",
+    "rich>=13.0",
+    "huggingface-hub>=0.20",
+    "psutil>=5.9",
+    "numpy>=1.24",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+cuda = ["nvidia-ml-py"]
+profiler = ["scipy"]
+all = ["tq-serve[cuda,profiler]"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-asyncio>=0.21",
+    "httpx>=0.24",
+    "ruff>=0.1",
+    "mypy>=1.0",
+]
+
+[project.scripts]
+tq = "tq.cli.main:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tq"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: marks integration tests (deselect with '-m \"not integration\"')",
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
