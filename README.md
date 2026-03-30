@@ -1,19 +1,39 @@
 # tq
 
-Run local LLMs with maximum context on minimum hardware. One command detects your GPU, picks the best model, applies TurboQuant KV cache compression (4-6x), and starts an OpenAI-compatible server.
+Run local LLMs with maximum context on minimum hardware. **tq implements [TurboQuant](https://arxiv.org/abs/2502.20365)** (Google Research, ICLR 2026) — a KV cache compression algorithm that gives you 4-6x more context from the same GPU, with near-zero quality loss. One command: detect hardware, pick a model, compress the KV cache, serve via an OpenAI-compatible API.
 
 ```bash
 pip install tq-serve
 tq start --coding
 ```
 
-## The Problem
+## What is TurboQuant?
 
-Your GPU runs out of memory not because of the model, but because of the conversation. The KV cache (the model's working memory) grows with every token — on an 8 GB RTX 4060, an 8B model maxes out at ~16K tokens of context. That's about 500 lines of code.
+When you chat with a local LLM, two things eat your GPU memory:
 
-TurboQuant compresses the KV cache by 4-6x with near-zero quality loss. Same model, same speed, 4-6x more context.
+1. **Model weights** — fixed cost, loaded once (~5 GB for an 8B model)
+2. **KV cache** — grows linearly with every token in the conversation. This is the model's working memory — how it remembers the start of your prompt while generating the end.
 
-**RTX 4060 with tq:** 16K → 80K tokens of context.
+The KV cache is the real bottleneck. On an 8 GB RTX 4060, an 8B model maxes out at ~16K tokens of context — about 500 lines of code. Paste a file plus documentation, and the GPU either crashes or spills to system RAM (speed drops from 40 tok/s to 3 tok/s).
+
+**TurboQuant** solves this by compressing the KV cache at the tensor level. It quantizes the key and value matrices to 3-4 bits (from the default 16-bit FP16) using MSE-optimal quantization with outlier channel preservation. The result:
+
+- **4-6x compression** of the KV cache
+- **< 0.5% perplexity increase** (essentially lossless at 4-bit, near-lossless at 3-bit)
+- **No retraining required** — works with any transformer model at inference time
+- **Zero latency overhead** — decompression is faster than the memory bandwidth savings
+
+tq implements the full TurboQuant pipeline: automatic bit-width selection (3-bit vs 4-bit) based on your available VRAM, asymmetric key/value configuration for smaller models, outlier channel detection, and codebook generation — all configured automatically based on your hardware.
+
+## Before / After
+
+| | Without tq | With tq | Compression |
+|---|---|---|---|
+| RTX 4060 (8 GB) | 16K context | **80K context** | 4x |
+| RTX 4050 (6 GB) | 8K context | **48K context** | 4x |
+| RTX 4090 (24 GB) | 64K context | **320K context** | 4x |
+
+Same model, same quality, same speed. The KV cache is just stored more efficiently.
 
 ## How It Works
 
@@ -23,7 +43,7 @@ tq start --coding
 
 1. **Detects hardware** — GPU, VRAM, RAM, CPU via llmfit → nvidia-smi → torch.cuda → psutil fallback chain
 2. **Recommends a model** — scores all candidates against your VRAM budget and use case
-3. **Configures TurboQuant** — auto-selects 3-bit or 4-bit KV compression based on available memory
+3. **Configures TurboQuant** — auto-selects 3-bit or 4-bit KV compression, generates codebooks, detects outlier channels
 4. **Downloads the model** — from HuggingFace, with resume support
 5. **Starts the server** — OpenAI-compatible API at `http://localhost:8000`
 
@@ -50,16 +70,6 @@ tq system
 # See what tq recommends for your hardware
 tq recommend --coding
 ```
-
-## Before / After
-
-| | Without tq | With tq |
-|---|---|---|
-| RTX 4060 (8 GB) | 16K context | 80K context |
-| RTX 4050 (6 GB) | 8K context | 48K context |
-| RTX 4090 (24 GB) | 64K context | 320K context |
-
-Same model, same quality, same speed. The KV cache is just stored more efficiently.
 
 ## Commands
 
